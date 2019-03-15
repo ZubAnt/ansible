@@ -388,6 +388,13 @@ class KubernetesRawModule(KubernetesAnsibleModule):
         return result
 
     def _wait_for(self, resource, name, namespace, predicate, timeout, state):
+        self.warn('[_wait_for] resource: {0}'.format(resource))
+        self.warn('[_wait_for] type(resource): {0}'.format(type(resource)))
+        self.warn('[_wait_for] hasattr(resource, get): {0}'.format(hasattr(resource, 'get')))
+
+        self.warn('[_wait_for] resource.client: {0}'.format(resource.client))
+        self.warn('[_wait_for] type(resource.client): {0}'.format(type(resource.client)))
+
         start = datetime.now()
 
         def _wait_for_elapsed():
@@ -395,8 +402,13 @@ class KubernetesRawModule(KubernetesAnsibleModule):
 
         response = None
         while _wait_for_elapsed() < timeout:
+
             try:
-                response = resource.get(name=name, namespace=namespace)
+                # response = resource.get(name=name, namespace=namespace)
+                client = resource.client
+                response = client.get(resource=resource, name=name, namespace=namespace)
+                self.warn('[_wait_for] [circle] response: {0}'.format(response))
+                self.warn('[_wait_for] [circle] type(response): {0}'.format(type(response)))
                 if predicate(response):
                     if response:
                         return True, response.to_dict(), _wait_for_elapsed()
@@ -406,6 +418,9 @@ class KubernetesRawModule(KubernetesAnsibleModule):
             except NotFoundError:
                 if state == 'absent':
                     return True, {}, _wait_for_elapsed()
+
+        self.warn('[_wait_for] response: {0}'.format(response))
+        self.warn('[_wait_for] [circle] type(response): {0}'.format(type(response)))
         if response:
             response = response.to_dict()
         return False, response, _wait_for_elapsed()
